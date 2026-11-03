@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>课程页样例（讨论稿）</title>
+<!-- 讨论阶段的交互样例：演示"课程的流动 + 系统的生长"。数据写死在脚本里，仅供参考视觉和交互方向。 -->
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg-primary: #f5f5f7; --bg-secondary: #ffffff; --bg-tertiary: #e5e5e7;
+    --border: #d1d1d6; --text-primary: #1d1d1f; --text-secondary: #86868b; --text-tertiary: #aeaeb2;
+    --accent: #0071e3; --success: #34c759; --warning: #ff9f0a; --selected-bg: #e8f4fd;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg-primary: #1d1d1f; --bg-secondary: #2d2d2f; --bg-tertiary: #3d3d3f;
+      --border: #424245; --text-primary: #f5f5f7; --text-secondary: #86868b; --text-tertiary: #636366;
+      --accent: #0a84ff; --selected-bg: rgba(10, 132, 255, 0.15);
+    }
+  }
+  body { font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif; background: var(--bg-primary); color: var(--text-primary); line-height: 1.5; padding: 2rem; max-width: 1200px; margin: 0 auto; }
+  h2 { font-size: 1.5rem; font-weight: 600; margin-bottom: 0.5rem; }
+  h3 { font-size: 1.1rem; font-weight: 600; margin-bottom: 0.25rem; }
+  .subtitle { color: var(--text-secondary); margin-bottom: 1.5rem; }
+  .section { margin-bottom: 2rem; }
+  .label { font-size: 0.7rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem; }
+  .split { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+  @media (max-width: 700px) { .split { grid-template-columns: 1fr; } body { padding: 1rem; } }
+  .mockup { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin-bottom: 1.5rem; }
+  .mockup-header { background: var(--bg-tertiary); padding: 0.5rem 1rem; font-size: 0.75rem; color: var(--text-secondary); border-bottom: 1px solid var(--border); }
+  .mockup-body { padding: 1.5rem; }
+</style>
+</head>
+<body>
+<style>
+  .c-head { display:flex; justify-content:space-between; align-items:flex-end; gap:1rem; margin-bottom:1rem; flex-wrap:wrap; }
+  .c-head h2 { margin-bottom:.2rem; }
+  .c-head .subtitle { margin-bottom:0; max-width:640px; }
+  .c-prog-wrap { font-size:.75rem; color:var(--text-secondary); text-align:right; }
+  .c-prog { width:220px; height:8px; background:var(--bg-tertiary); border-radius:99px; overflow:hidden; margin-top:.3rem; }
+  .c-prog > div { height:100%; width:25%; background:var(--accent); border-radius:99px; }
+  .c-wrap { display:grid; grid-template-columns:200px minmax(0,1fr); gap:1.25rem; align-items:start; }
+  @media (max-width:780px) { .c-wrap { grid-template-columns:1fr; } }
+  .c-tl { background:var(--bg-secondary); border:1px solid var(--border); border-radius:12px; padding:.6rem; }
+  .c-tl-item { position:relative; display:flex; gap:.6rem; padding:.45rem .5rem; border-radius:8px; cursor:pointer; }
+  .c-tl-item:hover { background:var(--bg-primary); }
+  .c-tl-item.active { background:var(--selected-bg); }
+  .c-tl-item:not(:last-child)::after { content:''; position:absolute; left:calc(.5rem + 10px); top:calc(.45rem + 22px); bottom:-.45rem; width:2px; background:var(--border); }
+  .c-dot { width:22px; height:22px; border-radius:50%; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:.68rem; font-weight:600; border:2px solid var(--border); background:var(--bg-secondary); color:var(--text-secondary); position:relative; z-index:1; }
+  .done .c-dot { background:var(--success); border-color:var(--success); color:#fff; }
+  .current .c-dot { border-color:var(--accent); color:var(--accent); box-shadow:0 0 0 4px var(--selected-bg); }
+  .c-tl-title { font-size:.85rem; font-weight:500; line-height:1.3; }
+  .c-tl-sub { font-size:.7rem; color:var(--text-secondary); }
+  .todo .c-tl-title { color:var(--text-secondary); }
+  .c-stage { background:var(--bg-secondary); border:1px solid var(--border); border-radius:12px; padding:1rem 1.1rem; min-width:0; }
+  .c-stage-head { display:flex; justify-content:space-between; gap:1rem; align-items:flex-start; flex-wrap:wrap; }
+  .c-kicker { font-size:.72rem; color:var(--text-secondary); letter-spacing:.04em; }
+  .c-tag { display:inline-block; font-size:.68rem; padding:.05rem .45rem; border-radius:99px; margin-left:.4rem; vertical-align:1px; }
+  .c-tag.done { background:rgba(52,199,89,.15); color:var(--success); }
+  .c-tag.current { background:var(--selected-bg); color:var(--accent); }
+  .c-tag.todo { background:var(--bg-tertiary); color:var(--text-secondary); }
+  .c-stage h3 { font-size:1.15rem; margin:.15rem 0 .25rem; }
+  .c-one { font-size:.88rem; color:var(--text-secondary); }
+  .c-ctrl { display:flex; gap:.4rem; flex-shrink:0; }
+  .c-btn { border:1px solid var(--border); background:var(--bg-primary); color:var(--text-primary); border-radius:8px; padding:.35rem .7rem; font-size:.8rem; cursor:pointer; }
+  .c-btn:hover { border-color:var(--accent); }
+  .c-btn.primary { background:var(--accent); border-color:var(--accent); color:#fff; }
+  .c-canvas { margin:.9rem 0 .6rem; background:var(--bg-primary); border-radius:10px; padding:.4rem; }
+  .c-canvas svg { width:100%; height:auto; display:block; }
+  .c-added { display:flex; flex-wrap:wrap; gap:.35rem; align-items:center; font-size:.78rem; margin-bottom:.9rem; min-height:1.2rem; }
+  .c-added b { color:var(--text-secondary); font-weight:500; margin-right:.2rem; }
+  .c-chip-new { background:var(--selected-bg); color:var(--accent); border-radius:99px; padding:.1rem .55rem; }
+  .c-cards { display:grid; grid-template-columns:repeat(auto-fit, minmax(210px,1fr)); gap:.7rem; }
+  .c-card { border:1px solid var(--border); border-radius:10px; padding:.7rem .8rem; background:var(--bg-secondary); animation:c-fade .35s ease both; }
+  .c-card h4 { font-size:.78rem; color:var(--text-secondary); font-weight:600; margin-bottom:.4rem; letter-spacing:.03em; }
+  .c-card p, .c-card li, .c-card td { font-size:.82rem; line-height:1.6; }
+  .c-card ul, .c-card ol { margin-left:1.1rem; }
+  .c-card blockquote { border-left:3px solid var(--accent); padding-left:.6rem; font-size:.82rem; line-height:1.6; }
+  .c-card table { width:100%; border-collapse:collapse; }
+  .c-card td { padding:.15rem .3rem; border-bottom:1px solid var(--border); vertical-align:top; }
+  .c-card td:first-child { white-space:nowrap; font-weight:500; }
+  .c-card .q { font-weight:500; }
+  .c-card .a { color:var(--text-secondary); margin-bottom:.35rem; }
+  .c-card.note { border-color:var(--accent); background:var(--selected-bg); }
+  .c-chips { display:flex; flex-wrap:wrap; gap:.3rem; }
+  .c-chips span { background:var(--bg-tertiary); border-radius:6px; padding:.1rem .45rem; font-size:.78rem; }
+  @keyframes c-fade { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:none; } }
+  @keyframes c-pop { from { opacity:0; transform:scale(.5); } to { opacity:1; transform:scale(1); } }
+  @keyframes c-draw { to { stroke-dashoffset:0; } }
+  @keyframes c-fadein { from { opacity:0; } to { opacity:1; } }
+  .n rect { fill:var(--bg-secondary); stroke:var(--border); stroke-width:1.5; }
+  .n text, .el, .g text, .b text, .newtag text, .r text { font-family:system-ui,-apple-system,sans-serif; }
+  .n text { fill:var(--text-primary); font-size:13px; text-anchor:middle; dominant-baseline:central; }
+  .n.new rect { stroke:var(--accent); stroke-width:2.5; fill:var(--selected-bg); }
+  .n.ghost rect { stroke-dasharray:5 4; fill:none; }
+  .n.ghost text { fill:var(--text-secondary); }
+  .n.new, .r { animation:c-pop .5s cubic-bezier(.2,1.4,.4,1) both; transform-box:fill-box; transform-origin:center; }
+  .newtag rect { fill:var(--accent); }
+  .newtag text { fill:#fff; font-size:9px; font-weight:700; text-anchor:middle; dominant-baseline:central; }
+  .e { stroke:var(--text-tertiary); stroke-width:1.6; fill:none; }
+  .e.dash { stroke-dasharray:5 4; }
+  .e.new { stroke:var(--accent); stroke-width:2.2; }
+  .e.new:not(.dash) { stroke-dasharray:var(--len); stroke-dashoffset:var(--len); animation:c-draw .6s .25s ease forwards; }
+  .e.new.dash, .g.new { animation:c-fadein .6s .2s both; }
+  .mk { fill:var(--text-tertiary); } .mkN { fill:var(--accent); }
+  .el { fill:var(--text-secondary); font-size:10.5px; }
+  .g rect { fill:var(--accent); fill-opacity:.04; stroke:var(--text-tertiary); stroke-dasharray:4 4; stroke-width:1; }
+  .g text { fill:var(--text-secondary); font-size:11px; font-weight:600; }
+  .b rect { fill:var(--bg-secondary); stroke:var(--warning); stroke-width:1.2; }
+  .b text { fill:var(--warning); font-size:10.5px; text-anchor:middle; dominant-baseline:central; }
+  .b.new { animation:c-fadein .5s .45s both; }
+  .r circle { fill:var(--accent); }
+  .r text { fill:#fff; font-size:11px; font-weight:700; text-anchor:middle; dominant-baseline:central; }
+  .c-steps { display:flex; flex-wrap:wrap; gap:.3rem; margin-bottom:.6rem; }
+  .c-steps span { font-size:.72rem; padding:.1rem .5rem; border-radius:99px; background:var(--bg-tertiary); color:var(--text-secondary); }
+  .c-steps .on { background:rgba(52,199,89,.15); color:var(--success); }
+  .c-steps .cur { background:var(--selected-bg); color:var(--accent); font-weight:600; }
+  .c-code { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:.75rem; line-height:1.55; background:var(--bg-primary); border-radius:8px; padding:.6rem .7rem; overflow-x:auto; }
+  .c-code ins { display:block; text-decoration:none; background:rgba(52,199,89,.18); margin:0 -.7rem; padding:0 .7rem; }
+  .c-tline { display:flex; flex-direction:column; gap:.55rem; }
+  .c-tline div { font-size:.8rem; }
+  .c-tline .m { display:flex; align-items:center; gap:.5rem; font-size:.72rem; color:var(--text-secondary); margin-top:.15rem; }
+  .c-tline .bar { height:6px; border-radius:99px; background:var(--warning); }
+  .c-tline .bar.ok { background:var(--success); }
+</style>
+
+<div class="c-head">
+  <div>
+    <h2>设计一个实时计费系统</h2>
+    <p class="subtitle">这是一个会跟着课程更新的页面：左边是课程怎么一步步往前走，右边是系统怎么一点点长出来。点左侧任意一课，或者按「播放生长」从头看一遍。</p>
+  </div>
+  <div class="c-prog-wrap">已学 2 / 8 课 · 正在学第 3 课<div class="c-prog"><div></div></div></div>
+</div>
+
+<div class="c-wrap">
+  <div class="c-tl" id="tl"></div>
+  <div class="c-stage">
+    <div class="c-stage-head">
+      <div>
+        <div class="c-kicker" id="kicker"></div>
+        <h3 id="title"></h3>
+        <p class="c-one" id="one"></p>
+      </div>
+      <div class="c-ctrl">
+        <button class="c-btn" id="prev">◀</button>
+        <button class="c-btn primary" id="play">▶ 播放生长</button>
+        <button class="c-btn" id="next">▶</button>
+      </div>
+    </div>
+    <div class="c-canvas"><svg id="arch" viewBox="0 0 990 380"></svg></div>
+    <div class="c-added" id="added"></div>
+    <div class="c-cards" id="cards"></div>
+  </div>
+</div>
+
+<div class="section" style="margin-top:1.75rem">
+  <div class="label">换个主题，「生长区」会换形态</div>
+  <div class="split">
+    <div class="mockup">
+      <div class="mockup-header">讲述一个 Go channel 使用场景 · 生长的是代码</div>
+      <div class="mockup-body">
+        <div class="c-steps"><span class="on">v1 无缓冲 channel</span><span class="on">v2 worker pool</span><span class="cur">v3 context 取消</span><span>v4 errgroup 收集错误</span></div>
+<pre class="c-code">jobs := make(chan Job, 100)
+for i := 0; i &lt; workers; i++ {
+    go func() {
+        for {
+            select {
+<ins>            case &lt;-ctx.Done():
+                return</ins>
+            case j := &lt;-jobs:
+                handle(j)
+            }
+        }
+    }()
+}</pre>
+      </div>
+    </div>
+    <div class="mockup">
+      <div class="mockup-header">讲述一次 SQL 调优 · 生长的是排查时间线</div>
+      <div class="mockup-body">
+        <div class="c-tline">
+          <div>① 慢查询告警：订单列表接口<div class="m"><span class="bar" style="width:100%"></span>3.2s</div></div>
+          <div>② EXPLAIN：全表扫描 + filesort<div class="m"><span class="bar" style="width:100%"></span>3.2s</div></div>
+          <div>③ 加联合索引 (user_id, created_at)<div class="m"><span class="bar" style="width:13%"></span>0.4s</div></div>
+          <div>④ 深分页改游标分页<div class="m"><span class="bar ok" style="width:3%"></span>45ms</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  const NW = 104, NH = 40;
+  const nodes = [
+    { id: 'biz', label: '业务服务', x: 70, y: 200, since: 1 },
+    { id: 'box', label: '计费系统 ?', x: 420, y: 200, w: 220, since: 1, until: 2, ghost: true },
+    { id: 'gw', label: '限流网关', x: 200, y: 200, since: 5 },
+    { id: 'mq', label: 'Kafka', x: 330, y: 200, since: 2, store: true },
+    { id: 'dlq', label: '死信队列', x: 330, y: 320, since: 4, store: true },
+    { id: 'rate', label: '计价引擎', x: 480, y: 200, since: 2 },
+    { id: 'price', label: '价格中心', x: 480, y: 80, since: 3 },
+    { id: 'bal', label: '余额服务', x: 630, y: 200, since: 2 },
+    { id: 'owe', label: '欠费控制', x: 630, y: 80, since: 3 },
+    { id: 'redis', label: 'Redis 预扣', x: 630, y: 320, since: 3, store: true },
+    { id: 'bill', label: '账单服务', x: 780, y: 200, since: 2 },
+    { id: 'db', label: 'MySQL 流水', x: 780, y: 320, since: 3, store: true },
+    { id: 'recon', label: '对账任务', x: 910, y: 260, since: 7 }
+  ];
+  const N = Object.fromEntries(nodes.map(n => [n.id, n]));
+  const edges = [
+    { f: 'biz', t: 'box', since: 1, until: 2, label: '用量事件' },
+    { f: 'biz', t: 'mq', since: 2, until: 5, label: '用量事件' },
+    { f: 'biz', t: 'gw', since: 5, label: '用量事件' },
+    { f: 'gw', t: 'mq', since: 5 },
+    { f: 'mq', t: 'rate', since: 2 },
+    { f: 'rate', t: 'bal', since: 2 },
+    { f: 'bal', t: 'bill', since: 2, until: 3 },
+    { f: 'price', t: 'rate', since: 3, dash: true, label: '规则' },
+    { f: 'bal', t: 'owe', since: 3, label: '余额不足' },
+    { f: 'bal', t: 'redis', since: 3 },
+    { f: 'bal', t: 'db', since: 3 },
+    { f: 'db', t: 'bill', since: 3, label: '汇总' },
+    { f: 'mq', t: 'dlq', since: 4, dash: true, label: '失败' },
+    { f: 'recon', t: 'db', since: 7, dash: true, label: '核对' },
+    { f: 'recon', t: 'bill', since: 7, dash: true }
+  ];
+  const groups = [
+    { label: '计量域', members: ['gw', 'mq', 'dlq'] },
+    { label: '计价域', members: ['rate', 'price'] },
+    { label: '账户域', members: ['bal', 'owe', 'redis'] },
+    { label: '账单域', members: ['bill', 'db', 'recon'] }
+  ];
+  const badges = [
+    { node: 'bal', text: 'Redis 挂→DB 扣', since: 4 },
+    { node: 'gw', text: '令牌桶 10w/s', since: 5 },
+    { node: 'mq', text: '分区 ×64', since: 5 },
+    { node: 'mq', text: '按账户 ID 分区', since: 6 },
+    { node: 'redis', text: 'Lua 原子扣减', since: 6 },
+    { node: 'recon', text: '差异自动冲正', since: 7 }
+  ];
+  const stages = [
+    { title: '需求澄清', status: 'done', one: '先问清楚计什么费、多实时、量多大，再动手画图。', added: ['业务服务', '计费系统（还是黑盒）'],
+      cards: [
+        { t: '需求清单', type: 'chips', items: ['预付费：余额不足要停服', '上报峰值 10w QPS', '扣费延迟 < 1s', '金额零误差、可追溯', '账单按小时 / 天出'] },
+        { t: '面试怎么讲', type: 'quote', body: '"我先确认几个问题：预付费还是后付费？上报量级和峰值？对实时性和准确性的要求？这决定后面走实时扣费还是周期出账。"' },
+        { t: '你问过的', type: 'qa', q: '预付费和后付费在架构上差别大吗？', a: '很大。预付费要实时扣、余额不足要拦截；后付费可以先记账再周期出账。' }
+      ] },
+    { title: '系统架构', status: 'done', one: '拆成采集 → 计价 → 扣费 → 出账四段，用 MQ 把上报和计费解耦。', added: ['Kafka', '计价引擎', '余额服务', '账单服务'],
+      cards: [
+        { t: '要点', type: 'list', items: ['上报量远大于扣费能力 → Kafka 削峰', '计价无状态，可横向扩', '余额服务管钱，单独拆', '账单面向展示，允许延迟'] },
+        { t: '面试怎么讲', type: 'quote', body: '"整体拆四段。先画数据流，每段一句话，然后问面试官想深挖哪段。"' },
+        { t: '常见追问', type: 'qas', items: [['为什么不同步扣费？', '扣费的延迟和故障会直接拖垮业务']] },
+        { t: '你问过的', type: 'qa', q: '预扣之后计价算错了怎么办？', a: '实扣以计价结果为准，差额走补扣 / 退款流水。' }
+      ] },
+    { title: '模块边界', status: 'current', one: '按"谁对什么数据负责"划 4 个域，跨域只走接口或消息。', added: ['价格中心', '欠费控制', 'Redis 预扣', 'MySQL 流水', '4 个域边界'],
+      cards: [
+        { t: '边界划分', type: 'table', rows: [['计量域', '收事件、去重、削峰'], ['计价域', '用量 × 规则 → 费用'], ['账户域', '余额、预扣、欠费'], ['账单域', '流水、出账、对账']] },
+        { t: '面试怎么讲', type: 'quote', body: '"我按数据归属划边界：余额只有账户域能改，其他域要动钱只能发扣费请求。"' },
+        { t: '常见追问', type: 'qas', items: [['价格规则变了，已算的费用怎么办？', '按事件发生时间取规则版本，规则带版本号']] },
+        { t: '正在讲', type: 'note', body: '下一步：为什么欠费控制放在账户域，而不是计价域？' }
+      ] },
+    { title: '故障降级', status: 'todo', one: '每个依赖都问一句"它挂了怎么办"，给出降级路径。', added: ['死信队列', '余额服务降级'],
+      cards: [
+        { t: '要点', type: 'list', items: ['Redis 挂 → 切 DB 扣费 + 单账户限额放行', '计价失败的事件进死信队列，修好后重放', '降级期间流水标"待确认"，恢复后对账'] },
+        { t: '面试怎么讲', type: 'quote', body: '"我按依赖逐个过：Kafka 挂、Redis 挂、DB 挂，各自影响面和降级方式。"' },
+        { t: '常见追问', type: 'qas', items: [['限额放行会不会亏钱？', '有少量敞口，用单账户限额 + 事后追缴控制住']] }
+      ] },
+    { title: '突发流量', status: 'todo', one: '入口限流、MQ 扩分区、消费端批量处理，三层吸收峰值。', added: ['限流网关', 'Kafka 分区扩容'],
+      cards: [
+        { t: '要点', type: 'list', items: ['网关令牌桶，超限事件本地缓冲重试', '分区数决定消费并行度上限', '消费端按账户批量聚合，减少扣费次数'] },
+        { t: '面试怎么讲', type: 'quote', body: '"峰值从哪来？大促、批任务补报……我在三个位置吸收它。"' },
+        { t: '常见追问', type: 'qas', items: [['被限流的用量还计费吗？', '不能丢只能延迟：本地落盘后重试上报']] }
+      ] },
+    { title: '并发控制', status: 'todo', one: '同一账户的扣费要串行：按账户分区 + Lua 原子扣减，防止超扣。', added: ['按账户 ID 分区', 'Lua 原子扣减'],
+      cards: [
+        { t: '要点', type: 'list', items: ['同账户事件进同一分区，天然串行', 'Lua 脚本里"查余额 + 扣减"原子完成', '落账用流水号唯一键保证幂等'] },
+        { t: '面试怎么讲', type: 'quote', body: '"超扣的根因是先读后写不原子，我用两层来保证。"' },
+        { t: '常见追问', type: 'qas', items: [['为什么不用分布式锁？', '锁的开销和失效问题更多，分区串行 + 原子脚本更简单']] }
+      ] },
+    { title: '一致性与可用性', status: 'todo', one: '扣费链路选最终一致，用对账和自动冲正兜底准确性。', added: ['对账任务', '自动冲正'],
+      cards: [
+        { t: '要点', type: 'list', items: ['Redis 余额是快照，MySQL 流水才是账本', '准实时对账 + T+1 全量对账', '差异自动冲正，超阈值告警人工介入'] },
+        { t: '面试怎么讲', type: 'quote', body: '"可用性和准确性冲突时，我先保证不停服，再用对账保证最终准确。"' },
+        { t: '常见追问', type: 'qas', items: [['CAP 里你选了什么？', '扣费链路 AP + 最终一致；余额查询读主库']] }
+      ] },
+    { title: '面试串讲', status: 'todo', one: '把前 7 课串成一条 10 分钟的讲述路线。', added: ['讲述路线 ①→⑥'], route: ['biz', 'mq', 'rate', 'bal', 'redis', 'recon'],
+      cards: [
+        { t: '10 分钟路线', type: 'olist', items: ['需求澄清（1 分钟）', '四段架构（2 分钟）', '深挖扣费与边界（3 分钟）', '故障与流量（2 分钟）', '一致性兜底（1 分钟）', '留钩子，等追问（1 分钟）'] },
+        { t: '开场白', type: 'quote', body: '"我先花一分钟确认需求，然后画整体架构，再挑扣费这条链路深挖。"' },
+        { t: '自测', type: 'list', items: ['不看图按路线讲一遍并计时', '让 agent 扮演面试官随机追问'] }
+      ] }
+  ];
+  const STATUS = { done: '已学', current: '进行中', todo: '未开始' };
+  const vis = (o, s) => o.since <= s && (!o.until || s < o.until);
+  const wOf = n => n.w || NW;
+  const textW = t => [...t].reduce((w, c) => w + (c.charCodeAt(0) > 255 ? 10.5 : 6.2), 0) + 14;
+  function clip(a, b) {
+    const dx = b.x - a.x, dy = b.y - a.y;
+    const s = Math.min((wOf(a) / 2 + 4) / Math.abs(dx || 1e-9), (NH / 2 + 4) / Math.abs(dy || 1e-9));
+    return { x: a.x + dx * s, y: a.y + dy * s };
+  }
+  const svg = document.getElementById('arch');
+  const defs = '<defs>' + ['mk', 'mkN'].map(c => `<marker id="${c}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="${c}"/></marker>`).join('') + '</defs>';
+
+  function draw(s) {
+    const st = stages[s - 1];
+    let out = defs;
+    if (s >= 3) groups.forEach(g => {
+      const ms = g.members.map(id => N[id]).filter(n => vis(n, s));
+      if (!ms.length) return;
+      const x0 = Math.min(...ms.map(n => n.x - wOf(n) / 2)) - 14, x1 = Math.max(...ms.map(n => n.x + wOf(n) / 2)) + 14;
+      const y0 = Math.min(...ms.map(n => n.y - NH / 2)) - 32, y1 = Math.max(...ms.map(n => n.y + NH / 2)) + 14;
+      out += `<g class="g ${s === 3 ? 'new' : ''}"><rect x="${x0}" y="${y0}" width="${x1 - x0}" height="${y1 - y0}" rx="12"/><text x="${x0 + 10}" y="${y0 + 16}">${g.label}</text></g>`;
+    });
+    edges.filter(e => vis(e, s)).forEach(e => {
+      const p = clip(N[e.f], N[e.t]), q = clip(N[e.t], N[e.f]);
+      const len = Math.hypot(q.x - p.x, q.y - p.y), isNew = e.since === s;
+      out += `<path class="e ${e.dash ? 'dash' : ''} ${isNew ? 'new' : ''}" style="--len:${len}" d="M${p.x},${p.y} L${q.x},${q.y}" marker-end="url(#${isNew ? 'mkN' : 'mk'})"/>`;
+      if (e.label) {
+        const vert = Math.abs(q.x - p.x) < 2, mx = (p.x + q.x) / 2, my = (p.y + q.y) / 2;
+        out += `<text class="el" x="${vert ? mx + 6 : mx}" y="${vert ? my + 4 : my - 6}" text-anchor="${vert ? 'start' : 'middle'}">${e.label}</text>`;
+      }
+    });
+    nodes.filter(n => vis(n, s)).forEach(n => {
+      const w = wOf(n), isNew = n.since === s;
+      out += `<g class="n ${isNew ? 'new' : ''} ${n.ghost ? 'ghost' : ''}"><rect x="${n.x - w / 2}" y="${n.y - NH / 2}" width="${w}" height="${NH}" rx="${n.store ? 18 : 8}"/><text x="${n.x}" y="${n.y}">${n.label}</text>`;
+      if (isNew && !n.ghost) out += `<g class="newtag"><rect x="${n.x + w / 2 - 30}" y="${n.y - NH / 2 - 8}" width="30" height="14" rx="7"/><text x="${n.x + w / 2 - 15}" y="${n.y - NH / 2 - 1}">NEW</text></g>`;
+      out += '</g>';
+    });
+    const count = {};
+    badges.filter(b => b.since <= s && vis(N[b.node], s)).forEach(b => {
+      const n = N[b.node], i = count[b.node] = (count[b.node] || 0) + 1;
+      const w = textW(b.text), y = n.y - NH / 2 - 14 - (i - 1) * 19 - (n.since === s ? 8 : 0);
+      out += `<g class="b ${b.since === s ? 'new' : ''}"><rect x="${n.x - w / 2}" y="${y - 8}" width="${w}" height="16" rx="8"/><text x="${n.x}" y="${y}">${b.text}</text></g>`;
+    });
+    (st.route || []).forEach((id, i) => {
+      const n = N[id], cx = n.x - wOf(n) / 2, cy = n.y - NH / 2;
+      out += `<g class="r" style="animation-delay:${0.2 + i * 0.25}s"><circle cx="${cx}" cy="${cy}" r="10"/><text x="${cx}" y="${cy}">${i + 1}</text></g>`;
+    });
+    svg.innerHTML = out;
+  }
+
+  function card(c, i) {
+    let body = '';
+    if (c.type === 'list') body = `<ul>${c.items.map(x => `<li>${x}</li>`).join('')}</ul>`;
+    if (c.type === 'olist') body = `<ol>${c.items.map(x => `<li>${x}</li>`).join('')}</ol>`;
+    if (c.type === 'quote') body = `<blockquote>${c.body}</blockquote>`;
+    if (c.type === 'qa') body = `<p class="q">Q：${c.q}</p><p class="a">A：${c.a}</p>`;
+    if (c.type === 'qas') body = c.items.map(([q, a]) => `<p class="q">${q}</p><p class="a">→ ${a}</p>`).join('');
+    if (c.type === 'table') body = `<table>${c.rows.map(r => `<tr><td>${r[0]}</td><td>${r[1]}</td></tr>`).join('')}</table>`;
+    if (c.type === 'chips') body = `<div class="c-chips">${c.items.map(x => `<span>${x}</span>`).join('')}</div>`;
+    if (c.type === 'note') body = `<p>${c.body}</p>`;
+    return `<div class="c-card ${c.type === 'note' ? 'note' : ''}" style="animation-delay:${i * 0.06}s"><h4>${c.t}</h4>${body}</div>`;
+  }
+
+  let cur = 3, timer = null;
+  const $ = id => document.getElementById(id);
+  function go(s) {
+    cur = Math.max(1, Math.min(stages.length, s));
+    const st = stages[cur - 1];
+    $('kicker').innerHTML = `第 ${cur} 课<span class="c-tag ${st.status}">${STATUS[st.status]}${st.status === 'todo' ? ' · 预览，讲到时才生成' : ''}</span>`;
+    $('title').textContent = st.title;
+    $('one').textContent = st.one;
+    $('added').innerHTML = '<b>本课新增</b>' + st.added.map(a => `<span class="c-chip-new">+ ${a}</span>`).join('');
+    $('cards').innerHTML = st.cards.map(card).join('');
+    document.querySelectorAll('.c-tl-item').forEach((el, i) => el.classList.toggle('active', i === cur - 1));
+    draw(cur);
+  }
+  function stop() { clearInterval(timer); timer = null; $('play').textContent = '▶ 播放生长'; }
+  $('tl').innerHTML = stages.map((st, i) => `<div class="c-tl-item ${st.status}" data-s="${i + 1}"><div class="c-dot">${st.status === 'done' ? '✓' : i + 1}</div><div><div class="c-tl-title">${st.title}</div><div class="c-tl-sub">${STATUS[st.status]}</div></div></div>`).join('');
+  document.querySelectorAll('.c-tl-item').forEach(el => el.addEventListener('click', () => { stop(); go(+el.dataset.s); }));
+  $('prev').onclick = () => { stop(); go(cur - 1); };
+  $('next').onclick = () => { stop(); go(cur + 1); };
+  $('play').onclick = () => {
+    if (timer) return stop();
+    let s = 1; go(s); $('play').textContent = '■ 停止';
+    timer = setInterval(() => { s += 1; if (s > stages.length) return stop(); go(s); }, 1700);
+  };
+  go(cur);
+})();
+</script>
+
+</body>
+</html>

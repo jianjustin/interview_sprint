@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>面试准备 · 课程总览</title>
+<!--
+  interview-sprint 总览页模板。由 agent 复制到 .interview_points/index.html，之后不再修改。
+  主题清单来自同目录的 index-data.js（window.INTERVIEW_INDEX），进度从各主题的 course-data.js 读取。
+-->
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #f5f5f7; --surface: #ffffff; --surface-2: #ececf0; --border: #d1d1d6; --text: #1d1d1f; --muted: #6e6e73;
+    --accent: #0071e3; --accent-ink: #0058b9; --selected: #e8f4fd; --success: #1f7a37; --success-soft: #e3f6e8;
+    --warning: #a85300; --warning-soft: #fff3e0; --danger: #c4001a; --danger-soft: #ffeceb;
+    color-scheme: light dark;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1c1c1e; --surface: #2c2c2e; --surface-2: #3a3a3c; --border: #48484a; --text: #f5f5f7; --muted: #aeaeb2;
+      --accent: #0a84ff; --accent-ink: #6cb6ff; --selected: #15304d; --success: #4fdc78; --success-soft: #173d24;
+      --warning: #ffb34d; --warning-soft: #3d2a10; --danger: #ff7b72; --danger-soft: #45201f;
+    }
+  }
+  body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif; background: var(--bg); color: var(--text); line-height: 1.5; padding: 1.5rem; max-width: 960px; margin: 0 auto; }
+  h1 { font-size: 1.5rem; font-weight: 650; }
+  .sub { color: var(--muted); font-size: .9rem; margin: .2rem 0 1.2rem; }
+  [hidden] { display: none !important; }
+  .notice { border-radius: 10px; padding: .7rem .95rem; margin-bottom: 1rem; font-size: .88rem; background: var(--danger-soft); border: 1px solid var(--danger); }
+  .empty { color: var(--muted); text-align: center; padding: 2rem; border: 1px dashed var(--border); border-radius: 12px; }
+  .topics { display: grid; gap: .8rem; list-style: none; }
+  .topic { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: .9rem 1.05rem; }
+  .topic:hover { border-color: var(--accent); }
+  .topic a { color: inherit; text-decoration: none; display: block; }
+  .row { display: flex; justify-content: space-between; gap: 1rem; align-items: baseline; flex-wrap: wrap; }
+  .topic h2 { font-size: 1.08rem; font-weight: 650; }
+  .tag { display: inline-block; font-size: .7rem; padding: .05rem .45rem; border-radius: 99px; background: var(--surface-2); color: var(--muted); margin-left: .4rem; vertical-align: 2px; font-weight: 550; }
+  .tag.demo { background: var(--warning-soft); color: var(--warning); }
+  .meta { font-size: .78rem; color: var(--muted); }
+  .bar { height: 7px; background: var(--surface-2); border-radius: 99px; overflow: hidden; margin: .55rem 0 .35rem; }
+  .bar > div { height: 100%; background: var(--accent); border-radius: 99px; }
+  .topic-progress { font-size: .82rem; }
+  .topic-resume { font-size: .85rem; color: var(--muted); margin-top: .2rem; }
+  .open { color: var(--accent-ink); font-size: .82rem; white-space: nowrap; }
+  .topic.broken { border-style: dashed; background: var(--danger-soft); }
+  .topic.broken .why { font-size: .85rem; color: var(--danger); margin-top: .2rem; }
+  @media (max-width: 600px) { body { padding: 1rem; } }
+</style>
+</head>
+<body>
+<h1>面试准备 · 课程总览</h1>
+<p class="sub">每个主题一门课；进度读取自各主题目录里的 course-data.js，页面每 5 秒刷新一次。</p>
+<div id="index-error" class="notice" hidden></div>
+<p id="empty" class="empty" hidden>还没有主题。对 agent 说「我想准备 xx 面试」就会创建第一门课。</p>
+<ul id="topics" class="topics"></ul>
+
+<script>
+(function () {
+  'use strict';
+  var TYPE_LABEL = { 'system-design': '系统设计', knowledge: '知识点', experience: '经历复盘' };
+  var $ = function (id) { return document.getElementById(id); };
+  function esc(v) {
+    return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  // 与课程页同口径：跳过的课不计入，可选课单独计数
+  function progressOf(d) {
+    var r = { required: 0, requiredDone: 0, optional: 0, optionalDone: 0, skipped: 0, currentIdx: -1 };
+    (Array.isArray(d.lessons) ? d.lessons : []).forEach(function (l, i) {
+      if (!l) return;
+      if (l.status === 'skipped') { r.skipped++; return; }
+      if (l.optional) { r.optional++; if (l.status === 'done') r.optionalDone++; }
+      else { r.required++; if (l.status === 'done') r.requiredDone++; }
+      if (l.status === 'current' && r.currentIdx < 0) r.currentIdx = i;
+    });
+    return r;
+  }
+  function fmtTime(s) {
+    var d = new Date(s);
+    if (!s || isNaN(d)) return s ? String(s) : '';
+    var p = function (n) { return (n < 10 ? '0' : '') + n; };
+    return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+  }
+  // 只允许当前目录下的相对路径，避免任何网络请求
+  function safeDir(dir) {
+    return typeof dir === 'string' && dir && !/^[a-z][a-z0-9+.-]*:/i.test(dir) && dir.indexOf('//') < 0 && dir.charAt(0) !== '/' && dir.split('/').indexOf('..') < 0;
+  }
+
+  function loadScript(src, globalName) {
+    return new Promise(function (resolve) {
+      window[globalName] = undefined;
+      var s = document.createElement('script');
+      s.src = src + '?t=' + Date.now();
+      s.onload = function () { s.remove(); var v = window[globalName]; window[globalName] = undefined; resolve(v === undefined ? { error: 'syntax' } : { value: v }); };
+      s.onerror = function () { s.remove(); resolve({ error: 'missing' }); };
+      document.head.appendChild(s);
+    });
+  }
+
+  function render(index, results) {
+    $('index-error').hidden = true;
+    var ok = results.filter(function (r) { return r.data; });
+    // 按实际时间倒序：不同工具可能写出 Z 或 +08:00 等不同时区格式，不能按字符串比较；无法解析的排在最后
+    var when = function (r) { var t = Date.parse(r.data.updatedAt); return isNaN(t) ? -Infinity : t; };
+    ok.sort(function (a, b) { return when(b) - when(a); });
+    var broken = results.filter(function (r) { return !r.data; });
+    $('empty').hidden = results.length > 0;
+    $('topics').innerHTML = ok.map(function (r) {
+      var d = r.data, p = progressOf(d);
+      var extra = [];
+      if (p.optional) extra.push('可选课 ' + p.optionalDone + ' / ' + p.optional);
+      if (p.skipped) extra.push('已跳过 ' + p.skipped);
+      return '<li class="topic" data-slug="' + esc(r.slug) + '"><a href="' + esc(r.dir) + '/course.html">' +
+        '<div class="row"><h2>' + esc(d.topic || r.slug) + '<span class="tag">' + esc(TYPE_LABEL[d.type] || d.type || '') + '</span>' +
+        (d.demoCase === true ? '<span class="tag demo">示范案例</span>' : '') + '</h2><span class="open">打开课程 →</span></div>' +
+        '<div class="bar"><div style="width:' + (p.required ? p.requiredDone / p.required * 100 : 0) + '%"></div></div>' +
+        '<div class="row"><span class="topic-progress">已学 ' + p.requiredDone + ' / ' + p.required + ' 课' +
+        (p.currentIdx >= 0 ? ' · 正在学第 ' + (p.currentIdx + 1) + ' 课' : '') + (extra.length ? ' · ' + extra.join(' · ') : '') + '</span>' +
+        '<span class="meta">' + (d.updatedAt ? '最后更新 ' + esc(fmtTime(d.updatedAt)) : '') + '</span></div>' +
+        '<p class="topic-resume">' + (d.resume && d.resume.note ? '上次讲到：' + esc(d.resume.note) : '') + '</p></a></li>';
+    }).join('') + broken.map(function (r) {
+      var why = r.error === 'unsafe' ? '目录必须是当前目录下的相对路径'
+        : r.error === 'missing' ? '找不到 ' + r.dir + '/course-data.js'
+        : 'course-data.js 有语法错误，或没有给 window.INTERVIEW_COURSE 赋值';
+      return '<li class="topic broken" data-slug="' + esc(r.slug) + '"><h2>' + esc(r.slug) + '</h2><p class="why">' + esc(why) + '</p></li>';
+    }).join('');
+  }
+
+  var lastFp = null, busy = false;
+  function refresh() {
+    if (busy) return;
+    busy = true;
+    loadScript('index-data.js', 'INTERVIEW_INDEX').then(function (res) {
+      var index = res.value;
+      if (!index || !Array.isArray(index.topics)) {
+        $('index-error').hidden = false;
+        $('index-error').textContent = res.error === 'missing'
+          ? '找不到 index-data.js：它应该和本页面放在同一个目录（.interview_points/）。'
+          : 'index-data.js 有语法错误，或没有给 window.INTERVIEW_INDEX 赋值 { version: 1, topics: [...] }。';
+        busy = false;
+        return;
+      }
+      $('index-error').hidden = true;
+      var results = [];
+      return index.topics.reduce(function (chain, t) {
+        return chain.then(function () {
+          var slug = t && t.slug, dir = t && (t.dir || t.slug);
+          if (!safeDir(dir)) { results.push({ slug: slug || String(dir), dir: String(dir), error: 'unsafe' }); return; }
+          return loadScript(dir + '/course-data.js', 'INTERVIEW_COURSE').then(function (r) {
+            results.push({ slug: slug || dir, dir: dir, data: r.value && typeof r.value === 'object' ? r.value : null, error: r.error });
+          });
+        });
+      }, Promise.resolve()).then(function () {
+        var fp = JSON.stringify(results);
+        if (fp !== lastFp) { lastFp = fp; render(index, results); }
+        busy = false;
+      });
+    }).catch(function (e) {
+      $('index-error').hidden = false;
+      $('index-error').textContent = '总览页出错：' + e.message;
+      busy = false;
+    });
+  }
+
+  refresh();
+  setInterval(refresh, 5000);
+})();
+</script>
+</body>
+</html>
