@@ -93,6 +93,9 @@
   .panel { margin-top: .9rem; }
   .panel-title { font-size: .75rem; color: var(--muted); font-weight: 650; margin-bottom: .35rem; letter-spacing: .03em; }
   .panel-title .metric-label { font-weight: 500; margin-left: .4rem; }
+  .panel-title .dl-btn { float: right; font: inherit; font-size: .68rem; color: var(--muted); background: none; border: 1px solid var(--line); border-radius: 6px; padding: .05rem .5rem; cursor: pointer; margin-top: -.1rem; }
+  .panel-title .dl-btn:hover { color: var(--text); border-color: var(--accent); }
+  .panel-title .dl-btn + .dl-btn { margin-left: .3rem; }
   .panel-canvas { background: var(--canvas); border-radius: 10px; padding: .4rem; overflow-x: auto; }
   .panel-canvas svg { width: 100%; height: auto; display: block; }
   .added { display: flex; flex-wrap: wrap; gap: .35rem; align-items: center; font-size: .78rem; margin-top: .75rem; }
@@ -964,9 +967,69 @@
       sec.className = 'panel';
       sec.dataset.kind = panel.kind;
       sec.innerHTML = '<div class="panel-title">' + esc(panel.title || '') +
-        (panel.metricLabel ? '<span class="metric-label">指标：' + esc(panel.metricLabel) + '</span>' : '') + '</div>' + body;
+        (panel.metricLabel ? '<span class="metric-label">指标：' + esc(panel.metricLabel) + '</span>' : '') +
+        (panel.kind === 'architecture' ? '<button type="button" class="dl-btn" data-dl="svg" title="导出 SVG（矢量）">SVG</button><button type="button" class="dl-btn" data-dl="png" title="导出 PNG（2 倍分辨率位图）">PNG</button>' : '') + '</div>' + body;
       box.appendChild(sec);
     });
+  }
+
+  function archSvgSource(btn) {
+    var sec = btn.closest('.panel');
+    var svg = sec && sec.querySelector('.panel-canvas svg');
+    if (!svg) return null;
+    var clone = svg.cloneNode(true);
+    var vb = (clone.getAttribute('viewBox') || '0 0 960 480').split(/\s+/).map(Number);
+    var w = Math.round(vb[2]), h = Math.round(vb[3]);
+    clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+    clone.setAttribute('width', w);
+    clone.setAttribute('height', h);
+    clone.classList.add('still'); // 复用模板的静态化规则：冻结动画，静态查看器也能正确显示
+    var css = document.querySelector('style');
+    var st = document.createElementNS('http://www.w3.org/2000/svg', 'style');
+    st.textContent = (css ? css.textContent : '') + '\nsvg.still { background: var(--bg); border-radius: 12px; }';
+    clone.insertBefore(st, clone.firstChild);
+    var l = lessons()[state.idx];
+    var name = ((state.data && state.data.slug) || 'course') + '-架构-' + (l ? l.id : state.idx);
+    return { xml: '<?xml version="1.0" encoding="UTF-8"?>\n' + new XMLSerializer().serializeToString(clone), w: w, h: h, name: name };
+  }
+
+  function downloadBlob(blob, filename) {
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 3000);
+  }
+
+  function exportArch(btn, type) {
+    var src = archSvgSource(btn);
+    if (!src) return;
+    if (type !== 'png') {
+      downloadBlob(new Blob([src.xml], { type: 'image/svg+xml;charset=utf-8' }), src.name + '.svg');
+      toast('已导出 ' + src.name + '.svg');
+      return;
+    }
+    var url = URL.createObjectURL(new Blob([src.xml], { type: 'image/svg+xml;charset=utf-8' }));
+    var img = new Image();
+    img.onload = function () {
+      var scale = 2; // 2 倍分辨率，Retina 屏和 PPT 里都清晰
+      var cv = document.createElement('canvas');
+      cv.width = src.w * scale;
+      cv.height = src.h * scale;
+      var ctx = cv.getContext('2d');
+      ctx.scale(scale, scale);
+      ctx.drawImage(img, 0, 0, src.w, src.h);
+      URL.revokeObjectURL(url);
+      cv.toBlob(function (b) {
+        if (!b) { toast('PNG 导出失败'); return; }
+        downloadBlob(b, src.name + '.png');
+        toast('已导出 ' + src.name + '.png');
+      }, 'image/png');
+    };
+    img.onerror = function () { URL.revokeObjectURL(url); toast('PNG 导出失败'); };
+    img.src = url;
   }
 
   // ---------- 页面 ----------
@@ -1126,6 +1189,8 @@
     if (item && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); stop(); go(+item.dataset.idx); }
   });
   $('growth').addEventListener('click', function (e) {
+    var dl = e.target.closest('.dl-btn');
+    if (dl) { exportArch(dl, dl.dataset.dl || 'svg'); return; }
     var chip = e.target.closest('.version-chip');
     if (!chip) return;
     state.pick[chip.dataset.panel] = chip.dataset.version;

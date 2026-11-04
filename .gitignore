@@ -5,3 +5,6 @@ tests/artifacts/
 .DS_Store
 node_modules/
 .superpowers/
+
+# 面试课程的工作区数据（course.html 副本与课程内容）
+.interview_points/
