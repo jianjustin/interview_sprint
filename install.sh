@@ -23,9 +23,9 @@ usage() {
                             ~/.claude-ccswitch/skills/$NAME
                             ~/.agents/skills/$NAME
                           设置了 CLAUDE_CONFIG_DIR 时，额外安装到 \$CLAUDE_CONFIG_DIR/skills/$NAME
-  --git [DIR]             用 git 管理安装：把仓库 clone 到 DIR（默认 $DEFAULT_GIT_DIR，
+  --git [DIR]             用 git 管理安装：把仓库 clone 到 DIR（默认 ${DEFAULT_GIT_DIR}，
                           已存在则 git pull），再把上述位置链接到 DIR 里的 $NAME/
-  --repo URL              --git 使用的仓库地址（默认取本仓库的 origin，否则 $DEFAULT_REPO）
+  --repo URL              --git 使用的仓库地址（默认取本仓库的 origin，否则 ${DEFAULT_REPO}）
   --update                在本仓库执行 git pull --ff-only 后重新链接（有未提交改动时拒绝）
   --claude-dir DIR        用 DIR 代替默认的 Claude Code 配置目录（可重复）
   --add-claude-dir DIR    在默认之外再追加一个 Claude Code 配置目录（可重复）
@@ -151,9 +151,9 @@ if [ "$MODE" = uninstall ]; then
     if [ -L "$t" ] && [ "$(readlink "$t")" = "$SRC" ]; then
       act rm "$t"; echo "已删除  $t"
     elif [ -L "$t" ]; then
-      echo "跳过    $t（软链接指向 $(readlink "$t")，不是本仓库）"
+      echo "跳过    ${t}（软链接指向 $(readlink "$t")，不是本仓库）"
     elif [ -e "$t" ]; then
-      echo "跳过    $t（不是软链接，未改动）"
+      echo "跳过    ${t}（不是软链接，未改动）"
     else
       echo "未安装  $t"
     fi
@@ -177,7 +177,7 @@ for t in "${TARGETS[@]}"; do
     continue
   fi
   if [ -L "$t" ]; then
-    echo "更新      $t（原来指向 $(readlink "$t")）"
+    echo "更新      ${t}（原来指向 $(readlink "$t")）"
     act rm "$t"
   else
     echo "安装      $t"
